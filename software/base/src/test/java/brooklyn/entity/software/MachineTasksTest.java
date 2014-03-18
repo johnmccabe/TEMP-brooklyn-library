@@ -14,6 +14,7 @@ import org.testng.annotations.Test;
 import brooklyn.entity.basic.ApplicationBuilder;
 import brooklyn.entity.basic.Entities;
 import brooklyn.location.LocationSpec;
+import brooklyn.location.MachineDetails;
 import brooklyn.location.OsDetails;
 import brooklyn.location.basic.LocalhostMachineProvisioningLocation;
 import brooklyn.location.basic.SshMachineLocation;
@@ -21,9 +22,9 @@ import brooklyn.management.ManagementContext;
 import brooklyn.management.Task;
 import brooklyn.test.entity.TestApplication;
 
-public class OsTasksTest {
+public class MachineTasksTest {
 
-    public static final Logger LOG = LoggerFactory.getLogger(OsTasksTest.class);
+    public static final Logger LOG = LoggerFactory.getLogger(MachineTasksTest.class);
 
     TestApplication app;
     ManagementContext mgmt;
@@ -47,11 +48,12 @@ public class OsTasksTest {
     }
 
     @Test(groups="Integration")
-    public void testGetOsDetails() {
-        Task<OsDetails> detailsTask = app.getExecutionContext().submit(OsTasks.getOsDetailsTask(app));
-        OsDetails details = detailsTask.getUnchecked();
-        LOG.info("testGetOsDetails found the following on localhost: name={}, version={}, arch={}, is64bit={}",
-                new Object[] {details.getName(), details.getVersion(), details.getArch(), details.is64bit()});
+    public void testGetOsDetailsForEntity() {
+        Task<MachineDetails> detailsTask = app.getExecutionContext().submit(MachineTasks.getMachineDetailsTask(app));
+        MachineDetails machine = detailsTask.getUnchecked();
+        LOG.info("Found the following on localhost: {}", machine);
+        assertNotNull(machine);
+        OsDetails details = machine.getOsDetails();
         assertNotNull(details);
         assertNotNull(details.getArch());
         assertNotNull(details.getName());
