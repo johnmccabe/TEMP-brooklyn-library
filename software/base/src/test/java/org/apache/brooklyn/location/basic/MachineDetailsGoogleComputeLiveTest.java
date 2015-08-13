@@ -16,39 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package brooklyn.location.basic;
+package org.apache.brooklyn.location.basic;
 
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
 
 import org.apache.brooklyn.api.entity.Entity;
 import org.apache.brooklyn.api.entity.proxying.EntitySpec;
+import org.apache.brooklyn.location.Location;
+import org.apache.brooklyn.location.MachineDetails;
+import org.apache.brooklyn.location.OsDetails;
 import org.apache.brooklyn.test.EntityTestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 
-import brooklyn.entity.AbstractEc2LiveTest;
+import brooklyn.entity.AbstractGoogleComputeLiveTest;
 import brooklyn.entity.basic.EmptySoftwareProcess;
 import brooklyn.entity.trait.Startable;
-import brooklyn.location.Location;
-import brooklyn.location.MachineDetails;
-import brooklyn.location.OsDetails;
-import brooklyn.util.collections.MutableMap;
 
-// This test really belongs in brooklyn-location but depends on AbstractEc2LiveTest in brooklyn-software-base
-public class MachineDetailsEc2LiveTest extends AbstractEc2LiveTest {
+// This test really belongs in brooklyn-location but depends on AbstractGoogleComputeLiveTest in brooklyn-software-base
+public class MachineDetailsGoogleComputeLiveTest extends AbstractGoogleComputeLiveTest {
 
-    private static final Logger LOG = LoggerFactory.getLogger(MachineDetailsEc2LiveTest.class);
-    private static final int TIMEOUT_MS = 1000 * 60 * 10; // ten minutes
+    private static final Logger LOG = LoggerFactory.getLogger(MachineDetailsGoogleComputeLiveTest.class);
 
     @Override
     protected void doTest(Location loc) throws Exception {
         Entity testEntity = app.createAndManageChild(EntitySpec.create(EmptySoftwareProcess.class));
         app.start(ImmutableList.of(loc));
-        EntityTestUtils.assertAttributeEqualsEventually(MutableMap.of("timeout", TIMEOUT_MS),
-                testEntity, Startable.SERVICE_UP, true);
+        EntityTestUtils.assertAttributeEqualsEventually(testEntity, Startable.SERVICE_UP, true);
 
         SshMachineLocation sshLoc = Locations.findUniqueSshMachineLocation(testEntity.getLocations()).get();
         MachineDetails machine = app.getExecutionContext()
