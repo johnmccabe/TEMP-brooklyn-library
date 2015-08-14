@@ -16,13 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package brooklyn.location.basic;
+package org.apache.brooklyn.location.basic;
 
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
 
 import org.apache.brooklyn.api.entity.Entity;
 import org.apache.brooklyn.api.entity.proxying.EntitySpec;
+import org.apache.brooklyn.api.location.Location;
+import org.apache.brooklyn.api.location.MachineDetails;
+import org.apache.brooklyn.api.location.OsDetails;
 import org.apache.brooklyn.test.EntityTestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,10 +35,6 @@ import com.google.common.collect.ImmutableList;
 import brooklyn.entity.AbstractGoogleComputeLiveTest;
 import brooklyn.entity.basic.EmptySoftwareProcess;
 import brooklyn.entity.trait.Startable;
-import brooklyn.location.Location;
-import brooklyn.location.MachineDetails;
-import brooklyn.location.OsDetails;
-import brooklyn.util.collections.MutableMap;
 
 // This test really belongs in brooklyn-location but depends on AbstractGoogleComputeLiveTest in brooklyn-software-base
 public class MachineDetailsGoogleComputeLiveTest extends AbstractGoogleComputeLiveTest {
