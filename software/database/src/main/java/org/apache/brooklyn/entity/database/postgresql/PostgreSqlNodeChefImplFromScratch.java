@@ -18,142 +18,47 @@
  */
 package org.apache.brooklyn.entity.database.postgresql;
 
-import org.apache.brooklyn.api.location.Location;
+import org.apache.brooklyn.api.entity.Effector;
 import org.apache.brooklyn.core.util.ResourceUtils;
 import org.apache.brooklyn.core.util.config.ConfigBag;
 import org.apache.brooklyn.core.util.task.DynamicTasks;
-import org.apache.brooklyn.entity.salt.SaltConfig;
-import org.apache.brooklyn.entity.salt.SaltConfigs;
-import org.apache.brooklyn.entity.salt.SaltLifecycleEffectorTasks;
-import org.apache.brooklyn.location.basic.SshMachineLocation;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import brooklyn.config.ConfigKey;
-import org.apache.brooklyn.api.entity.Effector;
 import brooklyn.entity.basic.ConfigKeys;
 import brooklyn.entity.basic.EffectorStartableImpl;
 import brooklyn.entity.basic.Entities;
-import brooklyn.entity.basic.SoftwareProcess;
-import org.apache.brooklyn.entity.database.postgresql.PostgreSqlNode;
+import brooklyn.entity.chef.ChefConfig;
+import brooklyn.entity.chef.ChefLifecycleEffectorTasks;
+import brooklyn.entity.chef.ChefServerTasks;
 import brooklyn.entity.effector.EffectorBody;
 import brooklyn.entity.effector.Effectors;
 import brooklyn.entity.software.SshEffectorTasks;
-import brooklyn.event.basic.DependentConfiguration;
 import brooklyn.event.feed.ssh.SshFeed;
 import brooklyn.event.feed.ssh.SshPollConfig;
+
+import org.apache.brooklyn.location.basic.Locations;
+import org.apache.brooklyn.location.basic.SshMachineLocation;
+
+import brooklyn.util.collections.Jsonya;
+import brooklyn.util.guava.Maybe;
 import brooklyn.util.ssh.BashCommands;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
+public class PostgreSqlNodeChefImplFromScratch extends EffectorStartableImpl implements PostgreSqlNode {
 
-public class PostgreSqlNodeSaltImpl extends EffectorStartableImpl implements PostgreSqlNode, SoftwareProcess {
-
-    private static final Logger LOG = LoggerFactory.getLogger(PostgreSqlNodeSaltImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(PostgreSqlNodeChefImplFromScratch.class);
 
     public static final Effector<String> EXECUTE_SCRIPT = Effectors.effector(String.class, "executeScript")
             .description("invokes a script")
             .parameter(ExecuteScriptEffectorBody.SCRIPT)
-            .impl(new ExecuteScriptEffectorBody())
-            .build();
-
+            .impl(new ExecuteScriptEffectorBody()).build();
+    
     private SshFeed feed;
 
-    @Override
     public void init() {
         super.init();
-        new SaltPostgreSqlLifecycle().attachLifecycleEffectors(this);
-    }
-
-    public static class SaltPostgreSqlLifecycle extends SaltLifecycleEffectorTasks {
-        public SaltPostgreSqlLifecycle() {
-            usePidFile("/var/run/postgresql/*.pid");
-            useService("postgresql");
-        }
-
-        @Override
-        protected void startMinionAsync() {
-            Entities.warnOnIgnoringConfig(entity(), SaltConfig.SALT_FORMULAS);
-            Entities.warnOnIgnoringConfig(entity(), SaltConfig.SALT_RUN_LIST);
-            Entities.warnOnIgnoringConfig(entity(), SaltConfig.SALT_LAUNCH_ATTRIBUTES);
-
-            // TODO Set these as defaults, rather than replacing user's value!?
-            SaltConfigs.addToFormulas(entity(), "postgres", "https://github.com/saltstack-formulas/postgres-formula/archive/master.tar.gz");
-            SaltConfigs.addToRunList(entity(), "postgres");
-            SaltConfigs.addLaunchAttributes(entity(), ImmutableMap.<String,Object>builder()
-                    .put("port", DependentConfiguration.attributeWhenReady(entity(), PostgreSqlNode.POSTGRESQL_PORT))
-                    .put("listen_addresses", "*")
-                    .put("pg_hba.type", "host")
-                    .put("pg_hba.db", "all")
-                    .put("pg_hba.user", "all")
-                    .put("pg_hba.addr", "0.0.0.0/0")
-                    .put("pg_hba.method", "md5")
-                    .build());
-
-            super.startMinionAsync();
-        }
-
-        @Override
-        protected void postStartCustom() {
-            super.postStartCustom();
-
-            // now run the creation script
-            String creationScriptUrl = entity().getConfig(PostgreSqlNode.CREATION_SCRIPT_URL);
-            String creationScript;
-            if (creationScriptUrl != null) {
-                creationScript = new ResourceUtils(entity()).getResourceAsString(creationScriptUrl);
-            } else {
-                creationScript = entity().getConfig(PostgreSqlNode.CREATION_SCRIPT_CONTENTS);
-            }
-            entity().invoke(PostgreSqlNodeSaltImpl.EXECUTE_SCRIPT,
-                    ConfigBag.newInstance().configure(ExecuteScriptEffectorBody.SCRIPT, creationScript).getAllConfig()).getUnchecked();
-
-            // and finally connect sensors
-            ((PostgreSqlNodeSaltImpl) entity()).connectSensors();
-        }
-
-        @Override
-        protected void preStopCustom() {
-            ((PostgreSqlNodeSaltImpl) entity()).disconnectSensors();
-            super.preStopCustom();
-        }
-    }
-
-    public static class ExecuteScriptEffectorBody extends EffectorBody<String> {
-        public static final ConfigKey<String> SCRIPT = ConfigKeys.newStringConfigKey("script", "contents of script to run");
-
-        @Override
-        public String call(ConfigBag parameters) {
-            return DynamicTasks.queue(SshEffectorTasks.ssh(
-                    BashCommands.pipeTextTo(
-                            parameters.get(SCRIPT),
-                            BashCommands.sudoAsUser("postgres", "psql --file -")))
-                    .requiringExitCodeZero()).getStdout();
-        }
-    }
-
-    protected void connectSensors() {
-        setAttribute(DATASTORE_URL, String.format("postgresql://%s:%s/", getAttribute(HOSTNAME), getAttribute(POSTGRESQL_PORT)));
-
-        Location machine = Iterables.get(getLocations(), 0, null);
-
-        if (machine instanceof SshMachineLocation) {
-            feed = SshFeed.builder()
-                    .entity(this)
-                    .machine((SshMachineLocation)machine)
-                    .poll(new SshPollConfig<Boolean>(SERVICE_UP)
-                            .command("ps -ef | grep [p]ostgres")
-                            .setOnSuccess(true)
-                            .setOnFailureOrException(false))
-                    .build();
-        } else {
-            LOG.warn("Location(s) %s not an ssh-machine location, so not polling for status; setting serviceUp immediately", getLocations());
-        }
-    }
-
-    protected void disconnectSensors() {
-        if (feed != null) feed.stop();
+        new ChefPostgreSqlLifecycle().attachLifecycleEffectors(this);
     }
 
     @Override
@@ -170,6 +75,89 @@ public class PostgreSqlNodeSaltImpl extends EffectorStartableImpl implements Pos
         return "PostgreSQL";
     }
 
+    public static class ChefPostgreSqlLifecycle extends ChefLifecycleEffectorTasks {
+        {
+            usePidFile("/var/run/postgresql/*.pid");
+            useService("postgresql");
+        }
+        protected void startWithKnifeAsync() {
+            Entities.warnOnIgnoringConfig(entity(), ChefConfig.CHEF_LAUNCH_RUN_LIST);
+            Entities.warnOnIgnoringConfig(entity(), ChefConfig.CHEF_LAUNCH_ATTRIBUTES);
+            
+            DynamicTasks.queue(
+                    ChefServerTasks
+                        .knifeConvergeRunList("postgresql::server")
+                        .knifeAddAttributes(Jsonya
+                            .at("postgresql", "config").add(
+                                "port", entity().getPostgreSqlPort(), 
+                                "listen_addresses", "*").getRootMap())
+                        .knifeAddAttributes(Jsonya
+                            .at("postgresql", "pg_hba").list().map().add(
+                                "type", "host", "db", "all", "user", "all", 
+                                "addr", "0.0.0.0/0", "method", "md5").getRootMap()) 
+                        // no other arguments currenty supported; chef will pick a password for us
+                );
+        }
+        protected void postStartCustom() {
+            super.postStartCustom();
+
+            // now run the creation script
+            String creationScript;
+            String creationScriptUrl = entity().getConfig(PostgreSqlNode.CREATION_SCRIPT_URL);
+            if (creationScriptUrl != null) {
+                creationScript = ResourceUtils.create(entity()).getResourceAsString(creationScriptUrl);
+            } else {
+                creationScript = entity().getConfig(PostgreSqlNode.CREATION_SCRIPT_CONTENTS);
+            }
+            entity().executeScript(creationScript);
+
+            // and finally connect sensors
+            entity().connectSensors();
+        }
+        protected void preStopCustom() {
+            entity().disconnectSensors();
+            super.preStopCustom();
+        }
+        protected PostgreSqlNodeChefImplFromScratch entity() {
+            return (PostgreSqlNodeChefImplFromScratch) super.entity();
+        }
+    }
+    
+    public static class ExecuteScriptEffectorBody extends EffectorBody<String> {
+        public static final ConfigKey<String> SCRIPT = ConfigKeys.newStringConfigKey("script", "contents of script to run");
+        
+        public String call(ConfigBag parameters) {
+            return DynamicTasks.queue(SshEffectorTasks.ssh(
+                    BashCommands.pipeTextTo(
+                        parameters.get(SCRIPT),
+                        BashCommands.sudoAsUser("postgres", "psql --file -")))
+                    .requiringExitCodeZero()).getStdout();
+        }
+    }
+    
+    protected void connectSensors() {
+        setAttribute(DATASTORE_URL, String.format("postgresql://%s:%s/", getAttribute(HOSTNAME), getAttribute(POSTGRESQL_PORT)));
+
+        Maybe<SshMachineLocation> machine = Locations.findUniqueSshMachineLocation(getLocations());
+
+        if (machine.isPresent()) {
+            feed = SshFeed.builder()
+                    .entity(this)
+                    .machine(machine.get())
+                    .poll(new SshPollConfig<Boolean>(SERVICE_UP)
+                            .command("ps -ef | grep [p]ostgres")
+                            .setOnSuccess(true)
+                            .setOnFailureOrException(false))
+                    .build();
+        } else {
+            LOG.warn("Location(s) {} not an ssh-machine location, so not polling for status; setting serviceUp immediately", getLocations());
+        }
+    }
+
+    protected void disconnectSensors() {
+        if (feed != null) feed.stop();
+    }
+
     @Override
     public String executeScript(String commands) {
         return Entities.invokeEffector(this, this, EXECUTE_SCRIPT,
@@ -179,5 +167,5 @@ public class PostgreSqlNodeSaltImpl extends EffectorStartableImpl implements Pos
     @Override
     public void populateServiceNotUpDiagnostics() {
         // TODO no-op currently; should check ssh'able etc
-    }
+    }    
 }
