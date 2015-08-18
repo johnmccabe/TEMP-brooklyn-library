@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.brooklyn.entity.software.base;
+package org.apache.brooklyn.entity.software.base.lifecycle;
 
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 import java.util.List;
@@ -37,15 +36,18 @@ import org.apache.brooklyn.entity.lifecycle.Lifecycle;
 import org.apache.brooklyn.entity.software.base.EmptySoftwareProcess;
 import org.apache.brooklyn.entity.software.base.SoftwareProcess;
 import org.apache.brooklyn.entity.software.base.SoftwareProcess.StopSoftwareParameters.StopMode;
-import org.apache.brooklyn.entity.software.base.lifecycle.MachineLifecycleEffectorTasks;
 import org.apache.brooklyn.entity.stock.BasicEntity;
 import org.apache.brooklyn.entity.stock.BasicEntityImpl;
 import org.apache.brooklyn.entity.trait.Startable;
+import org.apache.brooklyn.location.jclouds.BailOutJcloudsLocation;
 import org.apache.brooklyn.sensor.core.DependentConfiguration;
 import org.apache.brooklyn.sensor.core.Sensors;
 import org.apache.brooklyn.test.Asserts;
 import org.apache.brooklyn.util.core.task.TaskInternal;
+import org.apache.brooklyn.util.core.task.ValueResolver;
+import org.apache.brooklyn.util.exceptions.Exceptions;
 import org.apache.brooklyn.util.time.Duration;
+import org.apache.brooklyn.util.time.Time;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -53,8 +55,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-
-import org.apache.brooklyn.location.jclouds.BailOutJcloudsLocation;
 
 public class MachineLifecycleEffectorTasksTest {
     public static boolean canStop(StopMode stopMode, boolean isEntityStopped) {
@@ -82,7 +82,7 @@ public class MachineLifecycleEffectorTasksTest {
         assertEquals(canStop, expected);
     }
 
-    @Test
+    @Test(groups="Integration")
     public void testProvisionLatchObeyed() throws Exception {
 
         AttributeSensor<Boolean> ready = Sensors.newBooleanSensor("readiness");
@@ -95,20 +95,27 @@ public class MachineLifecycleEffectorTasksTest {
 
         final Task<Void> task = Entities.invokeEffector(app, app, Startable.START, ImmutableMap.of(
                 "locations", ImmutableList.of(BailOutJcloudsLocation.newBailOutJcloudsLocation(app.getManagementContext()))));
-
+        
+        Time.sleep(ValueResolver.PRETTY_QUICK_WAIT);
+        if (task.isDone()) throw new IllegalStateException("Task finished early with: "+task.get());
         assertEffectorBlockingDetailsEventually(entity, "Waiting for config " + BrooklynConfigKeys.PROVISION_LATCH.getName());
 
         Asserts.succeedsContinually(new Runnable() {
             @Override
             public void run() {
-                assertFalse(task.isDone());
+                if (task.isDone()) throw new IllegalStateException("Task finished early with: "+task.getUnchecked());
             }
         });
         try {
             ((EntityLocal) triggerEntity).setAttribute(ready, true);
             task.get(Duration.THIRTY_SECONDS);
         } catch (Throwable t) {
-            // BailOut location throws but we don't care.
+            Exceptions.propagateIfFatal(t);
+            if ((t.toString().contains(BailOutJcloudsLocation.ERROR_MESSAGE))) {
+                // expected - BailOut location throws - just swallow
+            } else {
+                Exceptions.propagate(t);
+            }
         } finally {
             Entities.destroyAll(app.getManagementContext());
         }
