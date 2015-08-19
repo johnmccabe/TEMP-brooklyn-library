@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.brooklyn.sensor.feed.jmx;
+package org.apache.brooklyn.feed.jmx;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -34,12 +34,12 @@ import javax.management.ObjectName;
 import org.apache.brooklyn.api.entity.EntityLocal;
 import org.apache.brooklyn.config.ConfigKey;
 import org.apache.brooklyn.core.config.ConfigKeys;
+import org.apache.brooklyn.core.feed.AbstractFeed;
+import org.apache.brooklyn.core.feed.AttributePollHandler;
+import org.apache.brooklyn.core.feed.DelegatingPollHandler;
+import org.apache.brooklyn.core.feed.PollHandler;
+import org.apache.brooklyn.core.feed.Poller;
 import org.apache.brooklyn.entity.software.base.SoftwareProcessImpl;
-import org.apache.brooklyn.sensor.feed.AbstractFeed;
-import org.apache.brooklyn.sensor.feed.AttributePollHandler;
-import org.apache.brooklyn.sensor.feed.DelegatingPollHandler;
-import org.apache.brooklyn.sensor.feed.PollHandler;
-import org.apache.brooklyn.sensor.feed.Poller;
 import org.apache.brooklyn.util.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

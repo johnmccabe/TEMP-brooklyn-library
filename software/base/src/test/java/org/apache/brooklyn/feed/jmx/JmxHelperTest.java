@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.brooklyn.sensor.feed.jmx;
+package org.apache.brooklyn.feed.jmx;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
@@ -35,7 +35,7 @@ import javax.management.StandardEmitterMBean;
 
 import org.apache.brooklyn.entity.software.base.test.jmx.GeneralisedDynamicMBean;
 import org.apache.brooklyn.entity.software.base.test.jmx.JmxService;
-import org.apache.brooklyn.sensor.feed.jmx.JmxHelper;
+import org.apache.brooklyn.feed.jmx.JmxHelper;
 import org.apache.brooklyn.test.TestUtils;
 import org.apache.brooklyn.util.collections.MutableMap;
 import org.apache.brooklyn.util.exceptions.Exceptions;

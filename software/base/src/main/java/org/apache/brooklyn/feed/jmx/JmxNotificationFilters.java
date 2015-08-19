@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.brooklyn.sensor.feed.jmx;
+package org.apache.brooklyn.feed.jmx;
 
 import javax.management.Notification;
 import javax.management.NotificationFilter;

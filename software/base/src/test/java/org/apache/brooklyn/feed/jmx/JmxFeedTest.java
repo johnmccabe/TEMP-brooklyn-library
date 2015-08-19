@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.brooklyn.sensor.feed.jmx;
+package org.apache.brooklyn.feed.jmx;
 
 import static org.apache.brooklyn.test.TestUtils.executeUntilSucceeds;
 import static org.testng.Assert.assertEquals;
@@ -49,6 +49,7 @@ import org.apache.brooklyn.api.sensor.SensorEventListener;
 import org.apache.brooklyn.core.entity.AbstractEntity;
 import org.apache.brooklyn.core.entity.Attributes;
 import org.apache.brooklyn.core.entity.Entities;
+import org.apache.brooklyn.core.feed.ConfigToAttributes;
 import org.apache.brooklyn.core.location.PortRanges;
 import org.apache.brooklyn.core.location.SimulatedLocation;
 import org.apache.brooklyn.core.sensor.BasicAttributeSensor;
@@ -63,14 +64,13 @@ import org.apache.brooklyn.entity.java.UsesJmx;
 import org.apache.brooklyn.entity.java.UsesJmx.JmxAgentModes;
 import org.apache.brooklyn.entity.software.base.test.jmx.GeneralisedDynamicMBean;
 import org.apache.brooklyn.entity.software.base.test.jmx.JmxService;
-import org.apache.brooklyn.sensor.feed.ConfigToAttributes;
-import org.apache.brooklyn.sensor.feed.jmx.JmxAttributePollConfig;
-import org.apache.brooklyn.sensor.feed.jmx.JmxFeed;
-import org.apache.brooklyn.sensor.feed.jmx.JmxHelper;
-import org.apache.brooklyn.sensor.feed.jmx.JmxNotificationFilters;
-import org.apache.brooklyn.sensor.feed.jmx.JmxNotificationSubscriptionConfig;
-import org.apache.brooklyn.sensor.feed.jmx.JmxOperationPollConfig;
-import org.apache.brooklyn.sensor.feed.jmx.JmxValueFunctions;
+import org.apache.brooklyn.feed.jmx.JmxAttributePollConfig;
+import org.apache.brooklyn.feed.jmx.JmxFeed;
+import org.apache.brooklyn.feed.jmx.JmxHelper;
+import org.apache.brooklyn.feed.jmx.JmxNotificationFilters;
+import org.apache.brooklyn.feed.jmx.JmxNotificationSubscriptionConfig;
+import org.apache.brooklyn.feed.jmx.JmxOperationPollConfig;
+import org.apache.brooklyn.feed.jmx.JmxValueFunctions;
 import org.apache.brooklyn.test.Asserts;
 import org.apache.brooklyn.test.TestUtils;
 import org.slf4j.Logger;
