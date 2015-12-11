@@ -377,7 +377,7 @@ public class BrooklynNodeImpl extends SoftwareProcessImpl implements BrooklynNod
                 log.debug("Shutting down "+entity()+" with "+formParams);
                 HttpToolResponse resp = ((BrooklynNode)entity()).http()
                     .post("/v1/server/shutdown",
-                        ImmutableMap.of("Brooklyn-Allow-Non-Master-Access", "true"),
+                        ImmutableMap.of("brooklyn-server-allow-Non-Master-Access", "true"),
                         formParams);
                 if (resp.getResponseCode() != HttpStatus.SC_NO_CONTENT) {
                     throw new IllegalStateException("Response code "+resp.getResponseCode());

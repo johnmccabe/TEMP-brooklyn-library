@@ -43,7 +43,7 @@ import com.google.common.collect.Lists;
  * <p>
  * Requires: 
  * -Xmx512m -Xms128m -XX:MaxPermSize=256m
- * and brooklyn-all jar, and this jar or classes dir, on classpath. 
+ * and brooklyn-server-all jar, and this jar or classes dir, on classpath. 
  **/
 public class WebClusterExample extends AbstractApplication {
     public static final Logger LOG = LoggerFactory.getLogger(WebClusterExample.class);

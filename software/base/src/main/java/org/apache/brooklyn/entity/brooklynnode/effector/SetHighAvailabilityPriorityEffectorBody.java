@@ -41,7 +41,7 @@ public class SetHighAvailabilityPriorityEffectorBody extends EffectorBody<Intege
 
         EntityHttpClient httpClient = ((BrooklynNode)entity()).http();
         HttpToolResponse resp = httpClient.post("/v1/server/ha/priority",
-            ImmutableMap.of("Brooklyn-Allow-Non-Master-Access", "true"),
+            ImmutableMap.of("brooklyn-server-allow-Non-Master-Access", "true"),
             ImmutableMap.of("priority", priority.toString()));
 
         if (resp.getResponseCode() == HttpStatus.SC_OK) {

@@ -48,7 +48,7 @@ public class SetHighAvailabilityModeEffectorBody extends EffectorBody<Management
 
         EntityHttpClient httpClient = ((BrooklynNode)entity()).http();
         HttpToolResponse resp = httpClient.post("/v1/server/ha/state", 
-                ImmutableMap.of("Brooklyn-Allow-Non-Master-Access", "true"),
+                ImmutableMap.of("brooklyn-server-allow-Non-Master-Access", "true"),
                 ImmutableMap.of("mode", mode.toString()));
 
         if (resp.getResponseCode() == HttpStatus.SC_OK) {
